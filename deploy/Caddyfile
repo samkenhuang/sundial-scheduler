@@ -1,0 +1,26 @@
+# One scheduling-platform domain: API, Worker Gateway, and console share it.
+sched.example.com {
+	encode zstd gzip
+
+	# Console assets and history fallback.
+	@console path /ui /ui/*
+	handle @console {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	# API and health.
+	@api path /v1/* /healthz
+	handle @api {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	# Worker Gateway; Workers only make outbound HTTPS requests here.
+	@worker path /worker/v1/*
+	handle @worker {
+		reverse_proxy 127.0.0.1:8081
+	}
+
+	handle / {
+		redir /ui/ 302
+	}
+}

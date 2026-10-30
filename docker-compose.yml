@@ -1,0 +1,98 @@
+x-sched-env: &sched-env
+  SCHED_DATABASE_URL: postgres://sched:sched@db:5432/sched?sslmode=disable
+  SCHED_REDIS_URL: redis://redis:6379/0
+  SCHED_PRESENCE_TTL: 90s
+  SCHED_DEV_TOKEN: dev-token
+  SCHED_WORKER_TOKEN: dev-worker-token
+  SCHED_LOG_ROOT: /data/logs
+  SCHED_SPOOL_ROOT: /data/spool
+  SCHED_WORKSPACE_ROOT: /data/workspaces
+
+x-sched-volumes: &sched-volumes
+  - sched-logs:/data/logs
+  - sched-spool:/data/spool
+  - sched-workspaces:/data/workspaces
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: sched-db
+    environment:
+      POSTGRES_USER: sched
+      POSTGRES_PASSWORD: sched
+      POSTGRES_DB: sched
+    ports:
+      - "55432:5432"
+    volumes:
+      - sched-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sched -d sched"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    container_name: sched-redis
+    ports:
+      - "56379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build: .
+    profiles: ["app"]
+    command: ["migrate"]
+    environment: *sched-env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  server:
+    build: .
+    profiles: ["app"]
+    command: ["server"]
+    environment: *sched-env
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes: *sched-volumes
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  scheduler:
+    build: .
+    profiles: ["app"]
+    command: ["scheduler"]
+    environment: *sched-env
+    volumes: *sched-volumes
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    build: .
+    profiles: ["app"]
+    command: ["worker"]
+    environment:
+      SCHED_GATEWAY_URL: http://server:8081
+      SCHED_WORKER_TOKEN: dev-worker-token
+      SCHED_WORKER_LABELS: linux,cpu=8
+      SCHED_WORKER_CONCURRENCY: "4"
+      SCHED_LOG_ROOT: /data/logs
+      SCHED_SPOOL_ROOT: /data/spool
+      SCHED_WORKSPACE_ROOT: /data/workspaces
+    volumes: *sched-volumes
+    depends_on:
+      server:
+        condition: service_started
+
+volumes:
+  sched-db:
+  sched-logs:
+  sched-spool:
+  sched-workspaces:

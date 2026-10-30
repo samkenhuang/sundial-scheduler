@@ -1,0 +1,25 @@
+[Unit]
+Description=Scheduler Platform Leader Scheduler
+Wants=network-online.target
+After=network-online.target sched-server.service
+
+[Service]
+Type=simple
+User=sched
+Group=sched
+WorkingDirectory=/opt/sched
+EnvironmentFile=/etc/sched/master.env
+ExecStart=/opt/sched/bin/sched scheduler
+Restart=always
+RestartSec=5s
+TimeoutStopSec=20s
+LimitNOFILE=65536
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+StateDirectory=sched
+
+[Install]
+WantedBy=multi-user.target

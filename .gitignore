@@ -1,0 +1,10 @@
+.toolchain/
+.cache/
+var/
+*.log
+.DS_Store
+web/node_modules/
+bin/
+.env
+.env.*
+!.env.example

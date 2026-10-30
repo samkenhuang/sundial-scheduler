@@ -1,0 +1,25 @@
+[Unit]
+Description=Scheduler Platform API and Worker Gateway
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=sched
+Group=sched
+WorkingDirectory=/opt/sched
+EnvironmentFile=/etc/sched/master.env
+ExecStart=/opt/sched/bin/sched server
+Restart=always
+RestartSec=5s
+TimeoutStopSec=20s
+LimitNOFILE=65536
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+StateDirectory=sched
+
+[Install]
+WantedBy=multi-user.target
