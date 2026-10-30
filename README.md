@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/brand/sundial-hero.svg" alt="Sundial — 让时间可见，让运行有序" width="100%">
+  <img src="docs/brand/sundial-hero.png" alt="Sundial — 让时间可见，让运行有序" width="100%">
 </p>
 
 <h1 align="center">Sundial · 日晷</h1>
