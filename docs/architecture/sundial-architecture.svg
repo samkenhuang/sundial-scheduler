@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920" role="img" aria-labelledby="title desc">
+  <title id="title">Sundial 系统架构</title>
+  <desc id="desc">控制面是服务窗口，Worker 负责执行，PostgreSQL 保存事实，Redis 保存瞬时状态。</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B0E13"/>
+      <stop offset="0.55" stop-color="#0E131B"/>
+      <stop offset="1" stop-color="#101720"/>
+    </linearGradient>
+    <linearGradient id="goldline" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D8B36A" stop-opacity="0"/>
+      <stop offset="0.2" stop-color="#D8B36A"/>
+      <stop offset="0.8" stop-color="#D8B36A"/>
+      <stop offset="1" stop-color="#D8B36A" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#FFFFFF" opacity="0.055"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7B8798"/>
+    </marker>
+    <marker id="arrow-gold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#D8B36A"/>
+    </marker>
+    <marker id="arrow-dash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6F7B8D"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="920" fill="url(#bg)"/>
+  <rect width="1600" height="920" fill="url(#dots)"/>
+  <path d="M0 760 C 260 700, 520 860, 800 790 S 1320 700, 1600 770 L1600 920 L0 920 Z" fill="#0A0D12" opacity="0.6"/>
+  <line x1="80" y1="158" x2="1520" y2="158" stroke="#252C36"/>
+
+  <text x="80" y="52" fill="#D8B36A" font-family="'SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="13" letter-spacing="3">SYSTEM ARCHITECTURE</text>
+  <text x="80" y="96" fill="#F4EFE4" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="38" font-weight="600">Sundial 系统架构</text>
+  <text x="80" y="128" fill="#9EA8B8" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="17">两个角色，两个数据组件。控制面是服务窗口，Worker 负责执行。</text>
+  <text x="1520" y="96" text-anchor="end" fill="#7E8898" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="14">自托管 · 单域名入口</text>
+
+  <!-- Operator -->
+  <rect x="90" y="214" width="240" height="106" rx="14" fill="#121821" stroke="#323B49"/>
+  <circle cx="126" cy="250" r="5" fill="#8FA0B8"/>
+  <text x="146" y="256" fill="#F4EFE4" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="22" font-weight="600">工程师</text>
+  <text x="126" y="290" fill="#9EA8B8" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="15">浏览器 / 控制台 / API</text>
+
+  <!-- Control plane -->
+  <rect x="430" y="286" width="380" height="244" rx="16" fill="#131A22" stroke="#6D5A33"/>
+  <rect x="430" y="286" width="380" height="3" rx="1.5" fill="url(#goldline)"/>
+  <rect x="662" y="308" width="112" height="28" rx="14" fill="#2A2518" stroke="#6D5A33"/>
+  <text x="718" y="327" text-anchor="middle" fill="#D8B36A" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="13">服务窗口</text>
+  <text x="470" y="354" fill="#F4EFE4" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="28" font-weight="600">控制面</text>
+  <text x="470" y="390" fill="#CBD2DC" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="17">控制台 · API · 调度决策</text>
+  <text x="470" y="418" fill="#CBD2DC" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="17">状态变更 · 日志路由 · 依赖编排</text>
+  <text x="470" y="470" fill="#D8B36A" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="15">必要的管控与 API 都从这里经过</text>
+  <text x="470" y="496" fill="#7E8898" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="14">执行压力交给 Worker，事实交给 PostgreSQL</text>
+
+  <!-- PostgreSQL -->
+  <rect x="1060" y="190" width="390" height="150" rx="14" fill="#121821" stroke="#324554"/>
+  <rect x="1060" y="190" width="390" height="3" rx="1.5" fill="#6FB3A8" opacity="0.8"/>
+  <rect x="1322" y="210" width="94" height="26" rx="13" fill="#182A2B" stroke="#355A56"/>
+  <text x="1369" y="228" text-anchor="middle" fill="#8FD0C6" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="12">事实来源</text>
+  <text x="1100" y="240" fill="#F4EFE4" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="25" font-weight="600">PostgreSQL</text>
+  <text x="1100" y="276" fill="#C4CDD8" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="16">任务 · 版本 · 运行 · 依赖</text>
+  <text x="1100" y="306" fill="#8E99A9" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="14">控制面重启后，从这里恢复</text>
+
+  <!-- Redis -->
+  <rect x="1060" y="520" width="390" height="150" rx="14" fill="#121821" stroke="#51462F"/>
+  <rect x="1060" y="520" width="390" height="3" rx="1.5" fill="#D8B36A" opacity="0.75"/>
+  <rect x="1322" y="540" width="94" height="26" rx="13" fill="#2A2518" stroke="#5C4D30"/>
+  <text x="1369" y="558" text-anchor="middle" fill="#D8B36A" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="12">瞬时状态</text>
+  <text x="1100" y="570" fill="#F4EFE4" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="25" font-weight="600">Redis</text>
+  <text x="1100" y="606" fill="#C4CDD8" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="16">心跳 · 在线状态 · 主节点协调</text>
+  <text x="1100" y="636" fill="#8E99A9" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="14">不承载任务事实</text>
+
+  <!-- Worker -->
+  <rect x="190" y="616" width="360" height="172" rx="14" fill="#121821" stroke="#3A354E"/>
+  <rect x="190" y="616" width="360" height="3" rx="1.5" fill="#8B7BB5" opacity="0.8"/>
+  <rect x="466" y="636" width="64" height="26" rx="13" fill="#1D1A2B" stroke="#443D60"/>
+  <text x="498" y="654" text-anchor="middle" fill="#B7A7DA" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="12">执行单元</text>
+  <text x="230" y="676" fill="#F4EFE4" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="25" font-weight="600">Worker 集群</text>
+  <text x="230" y="708" fill="#C4CDD8" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="16">领取 · 执行 · 上报</text>
+  <text x="230" y="738" fill="#8E99A9" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="14">可水平扩展，不连接数据库</text>
+
+  <!-- Worker logs -->
+  <rect x="620" y="704" width="340" height="132" rx="14" fill="#10151D" stroke="#3A424E"/>
+  <text x="656" y="744" fill="#E6E9EE" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="20" font-weight="600">Worker 本地日志</text>
+  <text x="656" y="774" fill="#AEB8C6" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="15">日志正文留在执行节点</text>
+  <text x="656" y="802" fill="#7E8898" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="14">查看时由控制面转发到对应节点</text>
+
+  <!-- Connections -->
+  <path d="M330 267 H380 V360 H430" fill="none" stroke="#7B8798" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="350" y="250" fill="#8E99A9" font-family="'SFMono-Regular',Consolas,monospace" font-size="13">HTTPS</text>
+
+  <path d="M810 350 H900 V265 H1060" fill="none" stroke="#6FB3A8" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="916" y="308" fill="#8FD0C6" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="14">任务 / 运行 / 依赖</text>
+
+  <path d="M810 450 H930 V595 H1060" fill="none" stroke="#D8B36A" stroke-width="2" marker-end="url(#arrow-gold)"/>
+  <text x="946" y="488" fill="#D8B36A" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="14">心跳 / 协调</text>
+
+  <path d="M370 616 V570 H540 V530" fill="none" stroke="#D8B36A" stroke-width="2" marker-end="url(#arrow-gold)"/>
+  <text x="456" y="558" text-anchor="middle" fill="#D8B36A" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="14">领取 / 上报</text>
+
+  <path d="M550 680 H586 V752 H620" fill="none" stroke="#8B7BB5" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="572" y="726" fill="#B7A7DA" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="13">写入 / 读取</text>
+
+  <!-- Footer -->
+  <line x1="80" y1="862" x2="1520" y2="862" stroke="#252C36"/>
+  <circle cx="88" cy="888" r="4" fill="#D8B36A"/>
+  <text x="100" y="893" fill="#9EA8B8" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="13">控制面</text>
+  <circle cx="168" cy="888" r="4" fill="#8B7BB5"/>
+  <text x="180" y="893" fill="#9EA8B8" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="13">Worker</text>
+  <circle cx="252" cy="888" r="4" fill="#6FB3A8"/>
+  <text x="264" y="893" fill="#9EA8B8" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="13">数据组件</text>
+  <text x="1520" y="893" text-anchor="end" fill="#6F7B8D" font-family="'PingFang SC','Noto Sans SC','Microsoft YaHei',sans-serif" font-size="13">20 万级任务 / 每天 50 万次运行</text>
+</svg>
