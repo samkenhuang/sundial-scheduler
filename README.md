@@ -31,7 +31,7 @@ Worker 是另一层：领取任务，执行，上报。它不连接数据库，�
 ## 架构一览
 
 <p align="center">
-  <img src="docs/architecture/sundial-architecture.png" width="100%" alt="Sundial 架构：控制面、Worker、PostgreSQL 与 Redis">
+  <img src="docs/architecture/sundial-architecture.svg" width="100%" alt="Sundial 架构：控制面、Worker、PostgreSQL 与 Redis">
 </p>
 
 | 角色 / 组件 | 职责 |
@@ -113,6 +113,7 @@ make run-worker
 ## 文档
 
 - [设计](DESIGN.md) — 系统如何工作，以及为什么这样工作
+- [架构图](docs/architecture/sundial-architecture.svg) — 控制面、Worker、PostgreSQL 与 Redis 的关系
 - [部署](deploy/README.md) — 单域名入口、systemd 与环境变量
 - [开发记录](docs/aegis/plans/2026-10-25-scheduler-platform-development-outline.md) — 从想法到实现的完整路径
 - [界面截图](docs/ui) — 控制台的日常视图
