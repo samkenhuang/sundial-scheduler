@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 560" role="img" aria-labelledby="title desc">
+  <title id="title">Sundial — 让时间可见，让运行有序</title>
+  <desc id="desc">深色背景上的日晷线稿与 Sundial 日晷品牌字标。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#090d12"/>
+      <stop offset="0.55" stop-color="#0d131a"/>
+      <stop offset="1" stop-color="#121a22"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#c8a96a" stop-opacity="0.20"/>
+      <stop offset="0.55" stop-color="#c8a96a" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#c8a96a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#c8a96a" stop-opacity="0"/>
+      <stop offset="0.15" stop-color="#c8a96a" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#c8a96a" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M 56 0 L 0 0 0 56" fill="none" stroke="#ffffff" stroke-opacity="0.035"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="560" fill="url(#bg)"/>
+  <rect width="1600" height="560" fill="url(#grid)"/>
+  <circle cx="1248" cy="280" r="360" fill="url(#glow)"/>
+
+  <!-- left: wordmark -->
+  <g fill="none" stroke="#c8a96a" stroke-width="1.2" opacity="0.9">
+    <circle cx="128" cy="128" r="15"/>
+    <path d="M128 113v30M113 128h30"/>
+    <path d="M128 143l-34 35" opacity="0.45"/>
+  </g>
+
+  <text x="126" y="234" fill="#f2ede4" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="76" font-weight="300" letter-spacing="18">SUNDIAL</text>
+  <text x="130" y="300" fill="#c8a96a" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="42" font-weight="300" letter-spacing="14">日晷</text>
+  <text x="132" y="362" fill="#9ba7b3" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif" font-size="25" font-weight="300" letter-spacing="4">让时间可见，让运行有序。</text>
+
+  <path d="M130 408h520" stroke="url(#rule)" stroke-width="1"/>
+  <text x="132" y="450" fill="#6f7b87" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="13" letter-spacing="5">SCHEDULING PLATFORM / 调度平台</text>
+
+  <!-- right: sundial -->
+  <g fill="none" stroke="#c8a96a">
+    <circle cx="1248" cy="280" r="222" stroke-opacity="0.16"/>
+    <circle cx="1248" cy="280" r="178" stroke-opacity="0.42" stroke-width="1.2"/>
+    <circle cx="1248" cy="280" r="146" stroke-opacity="0.20"/>
+    <circle cx="1248" cy="280" r="190" stroke-opacity="0.34" stroke-width="10" stroke-dasharray="1 23" stroke-linecap="round"/>
+    <g stroke-opacity="0.18" stroke-width="1">
+      <path d="M1248 58v58"/>
+      <path d="M1248 444v58"/>
+      <path d="M1026 280h58"/>
+      <path d="M1412 280h58"/>
+      <path d="M1091 123l41 41"/>
+      <path d="M1364 396l41 41"/>
+      <path d="M1405 123l-41 41"/>
+      <path d="M1132 396l-41 41"/>
+    </g>
+    <circle cx="1248" cy="280" r="7" fill="#c8a96a" stroke="none"/>
+    <path d="M1248 280V96" stroke="#e7d8b4" stroke-opacity="0.72" stroke-width="1.5"/>
+    <path d="M1248 280l118 92" stroke="#c8a96a" stroke-opacity="0.15" stroke-width="18" stroke-linecap="round"/>
+    <path d="M1248 280l150 36" stroke="#c8a96a" stroke-opacity="0.08" stroke-width="34" stroke-linecap="round"/>
+  </g>
+</svg>
