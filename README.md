@@ -30,9 +30,30 @@ Worker 是另一层：领取任务，执行，上报。它不连接数据库，�
 
 ## 架构一览
 
-<p align="center">
-  <img src="docs/architecture/sundial-architecture.svg" width="100%" alt="Sundial 架构：控制面、Worker、PostgreSQL 与 Redis">
-</p>
+```mermaid
+flowchart LR
+  U["工程师<br/>浏览器 / API"]
+  CP["控制面 · 服务窗口<br/>控制台 · API · 调度决策<br/>状态变更 · 日志路由"]
+  PG[("PostgreSQL<br/>任务 · 运行 · 依赖<br/>事实来源")]
+  RD[("Redis<br/>心跳 · 在线状态<br/>主节点协调")]
+  W["Worker 集群<br/>领取 · 执行 · 上报"]
+  LOG[("Worker 本地日志<br/>日志正文留在执行节点")]
+
+  U -->|HTTPS| CP
+  CP -->|任务 / 运行 / 依赖| PG
+  CP -->|心跳 / 协调| RD
+  W -->|领取 / 上报| CP
+  W -->|写入 / 读取| LOG
+
+  classDef control fill:#131A22,stroke:#D8B36A,color:#F4EFE4
+  classDef data fill:#121821,stroke:#6FB3A8,color:#F4EFE4
+  classDef worker fill:#121821,stroke:#8B7BB5,color:#F4EFE4
+  class CP control
+  class PG,RD,LOG data
+  class W,worker worker
+```
+
+<sub>架构图 · 可缩放的 [SVG 版本](docs/architecture/sundial-architecture.svg)</sub>
 
 | 角色 / 组件 | 职责 |
 | --- | --- |
