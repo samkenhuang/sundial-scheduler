@@ -50,7 +50,7 @@ flowchart LR
   classDef worker fill:#121821,stroke:#8B7BB5,color:#F4EFE4
   class CP control
   class PG,RD,LOG data
-  class W,worker worker
+  class W worker
 ```
 
 <sub>架构图 · 可缩放的 [SVG 版本](docs/architecture/sundial-architecture.svg)</sub>
