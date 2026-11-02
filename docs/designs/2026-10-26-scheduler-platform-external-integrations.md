@@ -1,9 +1,9 @@
-# Scheduler 平台外部依赖设计
+# 调度器平台外部依赖设计
 
-Status: design only  
-Date: 2026-10-26  
-Scope: Phase 11.5  
-Implementation: 本轮明确不实现；仅作为后续阶段的输入
+状态：仅设计  
+日期：2026-10-26  
+范围：阶段 11.5（Phase 11.5）  
+实现：本轮明确不实现；仅作为后续阶段的输入
 
 ## 1. 边界与原则
 
@@ -26,7 +26,7 @@ Implementation: 本轮明确不实现；仅作为后续阶段的输入
 
 ### 建议契约
 
-新增 `LogStore` 接口，按 run/attempt 寻址，调用方不感知后端：
+新增 `LogStore` 接口，按运行 / 尝试（run / attempt）寻址，调用方不感知后端：
 
 ```go
 type LogStore interface {
@@ -50,7 +50,7 @@ type LogStore interface {
 ### 迁移路径
 
 1. 配置 `SCHED_LOG_STORE=fs|s3`，`fs` 为当前默认，行为不变。
-2. Worker 完成 run 时仍写本地文件，Gateway 在收到完整日志后 `Put` 到对象存储；本地文件保留一个短窗口用于 SSE 回放。
+2. Worker 完成运行时仍写本地文件，Gateway 在收到完整日志后 `Put` 到对象存储；本地文件保留一个短窗口用于 SSE 回放。
 3. 中央读取优先对象存储，对象不存在时回退本地；回退只用于迁移窗口，不作为长期双写。
 4. 归档任务改为 `Move`；`log_manifest` 记录对象键和状态。
 5. 迁移完成后删除本地回退路径，设置 `SCHED_LOG_STORE=s3` 为生产默认。
@@ -61,7 +61,7 @@ type LogStore interface {
 - Worker 直传需要预签名 URL 或受控上传端点；不能让 Worker 持有长期 S3 凭证。
 - SSE 断线重连依赖对象存储的 Range 请求；`Last-Event-ID` 语义保持为字节偏移。
 - 对象存储不可用时，运行仍应完成；日志缺失应显式报错，不能静默成功。
-- 归档是异步的，必须可重入；同一 run 的 `Move` 要幂等。
+- 归档是异步的，必须可重入；同一运行的 `Move` 要幂等。
 
 ### 验收条件
 
@@ -78,33 +78,33 @@ type LogStore interface {
 
 ### 身份与授权模型
 
-- `tenant`：账单和隔离边界，每个 tenant 有独立 project 命名空间。
+- `tenant`：账单和隔离边界，每个租户有独立项目（project）命名空间。
 - `user`：由 OIDC subject 映射，不保存密码。
 - `project_member(project_id, user_id, role)`：`viewer` / `operator` / `admin`。
 - 角色能力：
-  - viewer：读 job、run、日志、依赖、队列。
-  - operator：触发、取消、归档 job、管理调度，但不能改 RBAC/项目设置。
+  - viewer：读任务、运行、日志、依赖、队列。
+  - operator：触发、取消、归档任务、管理调度，但不能改 RBAC/项目设置。
   - admin：项目设置、成员管理、全部 operator 能力。
 - 系统级 `platform_admin` 只通过配置或 OIDC group 映射授予，不写业务表。
 
 ### API 鉴权
 
 1. 浏览器使用 OIDC authorization code + PKCE，API 只接受 Bearer access token。
-2. API 验证 issuer、audience、过期时间和签名；缓存 JWKS，失败时 fail closed。
-3. 每次请求解析 `sub` 和 `tenant`，写入 request context；所有 store 查询必须携带 tenant/project 过滤条件。
-4. Worker/Gateway 使用独立 service credential，不复用用户 token；worker token 绑定 worker ID 和 tenant。
-5. 审计记录写入 actor 的 subject 和 tenant，不信任请求体中的 actor。
+2. API 验证 issuer、audience、过期时间和签名；缓存 JWKS，校验失败时按拒绝处理（fail closed）。
+3. 每次请求解析 `sub` 和 `tenant`，写入 request context；所有 store 查询必须携带租户/项目过滤条件。
+4. Worker/Gateway 使用独立 service credential，不复用用户 token；worker token 绑定 worker ID 和租户。
+5. 审计记录写入 actor 的 subject 和租户，不信任请求体中的 actor。
 
 ### 数据迁移
 
-- 现有单租户数据迁移到默认 tenant `default`，所有 project 继承默认 tenant。
+- 现有单租户数据迁移到默认租户 `default`，所有项目继承默认租户。
 - 新增唯一约束从 `job.name` 改为 `(tenant_id, name)`；现有名字不冲突，可直接迁移。
-- 后台任务、cron leader、liveness 扫描按 tenant 循环或使用全局任务加 tenant 过滤；第一阶段可只允许一个 tenant 运行。
+- 后台任务、cron 主节点、存活扫描按租户循环，或使用全局任务加租户过滤；第一阶段可只允许一个租户运行。
 
 ### 风险
 
-- 当前 store 层大量按 ID 查询，没有 tenant 条件；直接加 JOIN 容易漏过滤。必须把 tenant 作为 store 方法的强制参数，而不是可选 filter。
-- 日志对象键、Webhook 回调、审计导出都需要携带 tenant，避免跨租户猜测 ID。
+- 当前 store 层大量按 ID 查询，没有租户条件；直接加 JOIN 容易漏过滤。必须把租户作为 store 方法的强制参数，而不是可选 filter。
+- 日志对象键、Webhook 回调、审计导出都需要携带租户，避免跨租户猜测 ID。
 - OIDC 不可用时应拒绝新登录；已签发 token 在过期前仍有效，是否支持吊销需要单独决策。
 
 ### 验收条件
@@ -134,34 +134,34 @@ type Runner interface {
 
 ### 建议约束
 
-- 每个 run 一个容器，不共享容器；容器名包含 run ID，便于清理。
-- 镜像和命令来自不可变 job version，不允许运行时拉取任意镜像。
-- CPU/内存/磁盘限制来自 job spec 或 Worker 配额；超限直接失败。
-- 超时由 Worker 本地计时，到点 kill 容器；不依赖 Scheduler 扫描。
-- 日志通过容器 stdout/stderr 流到现有日志通道，不改变 run 状态语义。
+- 每次运行一个容器，不共享容器；容器名包含运行 ID，便于清理。
+- 镜像和命令来自不可变任务版本，不允许运行时拉取任意镜像。
+- CPU/内存/磁盘限制来自任务 spec 或 Worker 配额；超限直接失败。
+- 超时由 Worker 本地计时，到点 kill 容器；不依赖调度器扫描。
+- 日志通过容器 stdout/stderr 流到现有日志通道，不改变运行状态语义。
 - 网络默认关闭或仅白名单；不提供宿主机挂载，除非显式配置。
-- 容器运行时不可用视为执行失败，不重试、不 requeue。
+- 容器运行时不可用视为执行失败，不重试、不重新入队（requeue）。
 
 ### 迁移路径
 
 1. 增加 `SCHED_RUNNER=exec|container`，默认 `exec`。
 2. 先在一个 Worker 池启用容器，跑通日志、超时、取消、失败终态。
 3. 逐步替换执行池；`claim` 协议不变，Worker 只改变本地执行方式。
-4. 增加镜像白名单、资源配额和清理任务；清理失败不能阻塞 run 完成。
+4. 增加镜像白名单、资源配额和清理任务；清理失败不能阻塞运行完成。
 
 ### 风险
 
 - 容器启动延迟会影响高并发下的吞吐；需要预热或限制每 Worker 并发。
 - 取消语义需要 kill 容器进程组；只 kill 主进程可能留下子进程。
 - 镜像拉取失败、运行时 OOM、磁盘满都必须是终态失败，并保留可诊断错误。
-- 需要防止恶意 job 通过镜像/命令逃逸；本设计不宣称强隔离，生产应使用受控运行时和节点隔离。
+- 需要防止恶意任务通过镜像/命令逃逸；本设计不宣称强隔离，生产应使用受控运行时和节点隔离。
 
 ### 验收条件
 
-- 容器 run 的日志、超时、取消、失败终态与 exec 后端一致。
-- 超过资源限制的 run 以终态失败结束，不重试。
+- 容器运行的日志、超时、取消、失败终态与 exec 后端一致。
+- 超过资源限制的运行以终态失败结束，不重试。
 - 取消后容器和子进程在限定时间内退出，不残留。
-- 运行时故障不会让 run 永久 RUNNING。
+- 运行时故障不会让运行永久停留在 RUNNING。
 
 ## 5. Agent 升级
 
@@ -172,25 +172,25 @@ type Runner interface {
 ### 机制
 
 - Worker 上报 `version` 和 `capabilities`（labels、runner、日志后端）。
-- 控制面维护目标版本和滚动策略；Worker 收到 `upgrade` 命令后进入 `DRAINING`，不再 claim 新 run，等待当前 run 完成后下载新版本并重启。
+- 控制面维护目标版本和滚动策略；Worker 收到 `upgrade` 命令后进入 `DRAINING`，不再领取新运行，等待当前运行完成后下载新版本并重启。
 - 下载使用签名 URL，校验 SHA-256 和签名；失败不替换当前二进制。
-- 升级是运维动作，不是 run 重试；升级期间 run 仍按终态语义完成。
-- 版本兼容窗口：Gateway 至少支持 N 和 N-1 两个 Worker 协议；claim/complete/heartbeat 保持向后兼容。
-- 灰度：按 Worker 分组或比例发布，观察 claim 成功率、完成延迟和错误率后扩大。
+- 升级是运维动作，不是运行重试；升级期间运行仍按终态语义完成。
+- 版本兼容窗口：Gateway 至少支持 N 和 N-1 两个 Worker 协议；领取/完成/心跳保持向后兼容。
+- 灰度：按 Worker 分组或比例发布，观察领取成功率、完成延迟和错误率后扩大。
 
 ### 风险
 
-- 强制重启会中断 RUNNING run；必须默认 drain，不默认强杀。
+- 强制重启会中断 RUNNING 运行；必须默认排空（drain），不默认强杀。
 - 版本回滚需要保留上一版本二进制和配置；数据库迁移必须向后兼容一个版本。
 - 自动升级引入供应链风险：签名、校验、最小权限下载缺一不可。
-- 本阶段不实现升级分发，只要求 Worker 暴露版本和 drain 能力。
+- 本阶段不实现升级分发，只要求 Worker 暴露版本和排空能力。
 
 ### 验收条件
 
-- 升级期间没有新 claim 到正在 drain 的 Worker。
-- 当前 run 完成后 Worker 才重启；超时窗口可配置。
+- 升级期间没有新领取落到正在排空的 Worker。
+- 当前运行完成后 Worker 才重启；超时窗口可配置。
 - 签名/哈希校验失败时 Worker 保持不变并记录错误。
-- 新旧版本 Worker 可与同一 Gateway 共存完成 claim/complete。
+- 新旧版本 Worker 可与同一 Gateway 共存完成领取/完成。
 
 ## 6. 依赖 Webhook / Outbox
 
@@ -218,23 +218,23 @@ CREATE TABLE dependency_outbox (
 );
 ```
 
-- 在创建下游 run 的同一事务里插入 outbox，保证“下游已创建”和“事件已记录”原子。
+- 在创建下游运行的同一事务里插入 outbox，保证“下游已创建”和“事件已记录”原子。
 - `event_key` 使用确定性值，例如 `dependency:<downstreamRunID>:<upstreamRunID>`，消费端可幂等。
-- Dispatcher 使用 `FOR UPDATE SKIP LOCKED` 批量领取，指数退避；失败上限后进入 `DEAD`，不阻塞调度。
+- 分发器使用 `FOR UPDATE SKIP LOCKED` 批量领取，指数退避；失败上限后进入 `DEAD`，不阻塞调度。
 - 投递使用 HTTPS + HMAC 签名 + 时间戳；消费端按 `event_key` 去重。
-- 不保证 exactly-once；语义是 at-least-once + 消费端幂等。
+- 不保证恰好一次（exactly-once）；语义是至少一次（at-least-once）+ 消费端幂等。
 - Outbox 清理按已投递时间和保留期执行，不删除未投递记录。
 
 ### 风险
 
-- 外部端点慢会拖垮 dispatcher；必须设置并发上限、超时和独立 worker。
+- 外部端点慢会拖垮分发器；必须设置并发上限、超时和独立 worker。
 - 重试风暴需要退避和抖动；`DEAD` 需要可见的告警和重放工具。
-- Webhook 载荷包含 job/run 元数据，需按租户隔离签名密钥。
-- 依赖触发当前是数据库内逻辑，引入 outbox 后要保持现有 run 创建语义不变。
+- Webhook 载荷包含任务/运行元数据，需按租户隔离签名密钥。
+- 依赖触发当前是数据库内逻辑，引入 outbox 后要保持现有运行创建语义不变。
 
 ### 验收条件
 
-- 外部端点不可用时，run 创建和调度不受影响，outbox 持续重试。
+- 外部端点不可用时，运行创建和调度不受影响，outbox 持续重试。
 - 同一 `event_key` 重复投递时，测试消费端只处理一次。
 - 达到重试上限后进入 `DEAD`，有查询和重放入口。
 - 签名校验失败、时间戳过期、重放请求都有明确错误。
@@ -243,7 +243,7 @@ CREATE TABLE dependency_outbox (
 
 ### 目标
 
-在 run 数量达到数亿级前，把 `run`、`run_attempt`、`log_manifest` 改为按时间分区，降低索引维护和归档成本。
+在运行数量达到数亿级前，把 `run`、`run_attempt`、`log_manifest` 改为按时间分区，降低索引维护和归档成本。
 
 ### 建议
 
@@ -256,7 +256,7 @@ CREATE TABLE dependency_outbox (
 ### 风险
 
 - 分区键会改变主键和唯一索引，影响幂等/去重语义；必须先证明查询模式。
-- 跨分区查询可能变慢，尤其是依赖历史和全局 run 列表。
+- 跨分区查询可能变慢，尤其是依赖历史和全局运行列表。
 - 分区数量过多会增加规划开销；需要保留窗口和自动创建/删除策略。
 - 当前 `run_created_id_idx` 等索引需在每个分区上创建，或使用分区索引。
 
@@ -277,9 +277,9 @@ CREATE TABLE dependency_outbox (
 
 1. 多阶段构建：Go 静态二进制 + 非 root 运行用户 + 最小基础镜像。
 2. 构建参数固定版本、提交 SHA、构建时间；产物带 SBOM。
-3. CI 执行：单元测试、集成测试、镜像启动 smoke、healthcheck、迁移 dry-run。
+3. CI 执行：单元测试、集成测试、镜像启动冒烟测试、healthcheck、迁移预演（dry-run）。
 4. 镜像扫描阻断高危漏洞；签名使用 cosign/Sigstore；发布附带校验和。
-5. 多架构构建（linux/amd64、linux/arm64），在目标架构上跑 smoke。
+5. 多架构构建（linux/amd64、linux/arm64），在目标架构上跑冒烟测试。
 6. 镜像标签使用不可变 digest；部署只引用 digest，不引用 `latest`。
 
 ### 风险
@@ -291,7 +291,7 @@ CREATE TABLE dependency_outbox (
 
 ### 验收条件
 
-- 从干净环境构建的镜像可以启动 API/Worker 并通过 smoke。
+- 从干净环境构建的镜像可以启动 API/Worker 并通过冒烟测试。
 - 镜像以非 root 运行，healthcheck 生效，迁移可重复执行。
 - SBOM、签名、扫描报告随发布归档。
 - 部署清单只引用 digest，回滚可用上一 digest。
@@ -309,7 +309,7 @@ CREATE TABLE dependency_outbox (
 ## 10. 本轮明确不做
 
 - 不新增 S3/MinIO SDK、上传端点或生命周期策略。
-- 不新增 OIDC 中间件、RBAC 表、tenant 字段或成员管理页面。
+- 不新增 OIDC 中间件、RBAC 表、租户字段或成员管理页面。
 - 不新增容器运行时依赖、镜像白名单或资源配额。
 - 不实现 Worker 自动下载/替换二进制。
 - 不新增 outbox 表、dispatcher 或 webhook 投递。
