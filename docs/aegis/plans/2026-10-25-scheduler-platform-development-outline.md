@@ -1,11 +1,11 @@
 # Scheduler 平台开发大纲
 
-Status: canonical development outline  
-Date: 2026-10-25  
-Supersedes: `docs/aegis/plans/2026-10-25-scheduler-control-plane-optimization.md`  
-Scope: 后续所有调度平台实现按本文阶段推进；旧计划仅作历史记录。
+状态：正式开发大纲（canonical）  
+日期：2026-10-25  
+取代：`docs/aegis/plans/2026-10-25-scheduler-control-plane-optimization.md`  
+范围：后续所有调度平台实现按本文阶段推进；旧计划仅作历史记录。
 
-Aegis Visibility: 本文件把已经拍板的产品约束、控制面架构、失败语义和依赖模型固定为后续实现基线，避免继续在 shard、retry、gate 三条旧路径上分叉。
+Aegis 可见性：本文件把已经拍板的产品约束、控制面架构、失败语义和依赖模型固定为后续实现基线，避免继续在 shard、retry、gate 三条旧路径上分叉。
 
 ## 1. 目标与边界
 
@@ -333,9 +333,9 @@ Aegis Visibility: 本文件把已经拍板的产品约束、控制面架构、�
 
 ### Phase 11：无外部依赖 P1 收尾（已完成）
 
-Status: 已完成（2026-10-26）。11.1–11.5 已实现，11.6 的 Go/集成/性能/浏览器回归已完成；axe-core 在离线环境无法安装，使用等价 DOM/语义/键盘/390px 审计替代，未声称跑过 axe。
+状态：已完成（2026-10-26）。11.1–11.5 已实现，11.6 的 Go/集成/性能/浏览器回归已完成；axe-core 在离线环境无法安装，使用等价 DOM/语义/键盘/390px 审计替代，未声称跑过 axe。
 TDD Route: off / skipped（项目未要求 strict TDD；以 store 测试、集成和浏览器回归验证）。
-Scope: 只实现不依赖 S3/Redis 新能力/OIDC/容器运行时的 P1；外部项只产出设计文档。
+范围：只实现不依赖 S3/Redis 新能力/OIDC/容器运行时的 P1；外部项只产出设计文档。
 
 目标：
 
@@ -369,10 +369,10 @@ Scope: 只实现不依赖 S3/Redis 新能力/OIDC/容器运行时的 P1；外部
 
 - **11.3 任务软归档 + 改名**
   - 已确认语义：设置 `job.archived_at`、停 cron、移除依赖边、把 QUEUED 运行置 CANCELED；RUNNING 允许完成；任务名继续占用；列表隐藏；历史保留。
-  - Store:
+  - 存储层：
     - `ArchiveJob(ctx, id)`：行锁、幂等归档、停调度、删除双向 dependency 边、取消 QUEUED runs，返回归档 job 与取消数量。
     - `RenameJob(ctx, id, name)`：只允许未归档 job；唯一冲突映射 409。
-  - API:
+  - API 层：
     - `DELETE /v1/jobs/{id}` 软归档；审计 `job.archive`，记录 canceledRuns。
     - `PATCH /v1/jobs/{id}` 改名；审计 `job.rename`。
     - 归档 job 的触发、发版、调度、依赖写入全部 409；`GET /v1/jobs/{id}` 仍可读并返回 `archivedAt`。
