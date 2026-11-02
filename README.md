@@ -133,6 +133,8 @@ make run-worker
 
 ## 文档
 
+以下文档均为简体中文；代码、API、字段名和产品名保留原文。
+
 - [设计](DESIGN.md) — 系统如何工作，以及为什么这样工作
 - [架构图](docs/architecture/sundial-architecture.svg) — 控制面、Worker、PostgreSQL 与 Redis 的关系
 - [部署](deploy/README.md) — 单域名入口、systemd 与环境变量
