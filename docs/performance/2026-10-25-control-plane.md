@@ -1,38 +1,35 @@
-# Control-Plane Performance Check — 2026-10-25
+# 控制面性能检查 — 2026-10-25
 
-Synthetic local benchmark of the control-plane SQL shape. This is a planning
-check, not a production capacity guarantee.
+针对控制面 SQL 形态的本地合成基准测试。这是一次规划阶段的检查，不构成生产容量保证。
 
-## Environment and dataset
+## 环境与数据集
 
-- PostgreSQL 17.11 in a local Docker container (`sched-db`), aarch64 host.
-- 1,000 jobs / 1,000 immutable versions.
-- 200,000 runs:
-  - 100,000 `QUEUED`
-  - 50,000 `SUCCEEDED`
-  - 25,000 `RUNNING`
-  - 25,000 `FAILED`
-- 10 required dependency edges and 10 matching `SUCCEEDED` upstream runs with
-  the same `time_hour`.
-- Reproduce with `make perf`; full output is written to `var/perf/report.txt`.
+- 本地 Docker 容器（`sched-db`）中的 PostgreSQL 17.11，aarch64 主机。
+- 1,000 个任务 / 1,000 个不可变版本。
+- 200,000 次运行：
+  - 100,000 个 `QUEUED`
+  - 50,000 个 `SUCCEEDED`
+  - 25,000 个 `RUNNING`
+  - 25,000 个 `FAILED`
+- 10 条必需依赖边，以及 10 个对应的、`time_hour` 相同的 `SUCCEEDED` 上游运行。
+- 用 `make perf` 复现；完整输出写入 `var/perf/report.txt`。
 
-## Query plans
+## 查询计划
 
-| Operation | Observed plan / timing |
+| 操作 | 观测到的计划 / 耗时 |
 |---|---|
-| Claim batch, 20 runs | `run_claim_idx` index scan + `LockRows`; 0.133 ms execution |
-| Complete: load run by id | primary-key index scan; 0.031 ms |
-| Complete: update `run_attempt` | unique `(run_id, attempt)` index; 0.122 ms |
-| Complete: update `run` | primary-key index scan; 0.180 ms |
-| Dependency readiness, 10 required edges | `run_job_time_hour_idx` index-only scan once per edge; 0.080 ms total |
-| Cron catch-up insert, 100 runs | 2.606 ms including both FK constraint triggers |
+| 领取批次，20 次运行 | `run_claim_idx` 索引扫描 + `LockRows`；执行 0.133 ms |
+| 完成：按 id 加载运行 | 主键索引扫描；0.031 ms |
+| 完成：更新 `run_attempt` | 唯一 `(run_id, attempt)` 索引；0.122 ms |
+| 完成：更新 `run` | 主键索引扫描；0.180 ms |
+| 依赖就绪检查，10 条必需边 | 每条边各执行一次 `run_job_time_hour_idx` 仅索引扫描；合计 0.080 ms |
+| Cron 追补插入，100 次运行 | 2.606 ms，含两个外键约束触发器 |
 
-The dependency lookup is covered by `run(job_id, time_hour, state)` and was an
-index-only scan in this dataset, so it does not need a table read per edge.
+依赖查找由 `run(job_id, time_hour, state)` 覆盖，在该数据集上是仅索引扫描，因此每条边都不需要回表读取。
 
-## Claim throughput
+## 领取吞吐
 
-`pgbench` with 20 clients, 20 rows per transaction, 200 transactions per client:
+`pgbench`，20 个客户端，每事务 20 行，每客户端 200 个事务：
 
 ```text
 transactions processed: 4000/4000
@@ -41,45 +38,27 @@ latency average:        9.070 ms
 tps:                    2205.108
 ```
 
-That is about 44k claimed/updated run rows/s in the synthetic setup. The
-measured queue had 100k rows, so all 4,000 transactions performed real work.
-`FOR UPDATE SKIP LOCKED` kept concurrent claimers from waiting on each other.
+即在该合成环境下约每秒 44k 行运行被领取/更新。被测队列有 100k 行，因此 4,000 个事务都执行了真实工作。`FOR UPDATE SKIP LOCKED` 使并发领取者不会相互等待。
 
-## Connection and lock observations
+## 连接与锁观测
 
-- Application pool: `internal/db/db.go` caps each process at 16 connections.
-  `server` and `scheduler` each own a pool; Workers never connect to PostgreSQL.
-- Benchmark clients: 20.
-- Deadlocks after the claim run: 0. Conflicts: 0.
-- Lock waits are bounded by design: claim uses `SKIP LOCKED`; dependency
-  readiness serializes only the same `(downstream, time_hour)` via a
-  transaction-scoped advisory lock.
+- 应用连接池：`internal/db/db.go` 将每个进程的连接数限制为 16。`server` 与 `scheduler` 各自拥有一个连接池；Worker 从不连接 PostgreSQL。
+- 基准客户端：20 个。
+- 领取运行后的死锁：0。冲突：0。
+- 锁等待在设计上有界：领取使用 `SKIP LOCKED`；依赖就绪只对相同 `(downstream, time_hour)` 通过事务级咨询锁（advisory lock）串行化。
 
-## Reading against the target
+## 对照目标的解读
 
-At the design target (~58 run/s at 10x peak):
+按设计目标（10 倍峰值下约 58 次运行/s）：
 
-- Completion is ~58 transaction/s. Each completion's measured DB work is well
-  under 1 ms plus its dependency probes, so this is a small fraction of one
-  PostgreSQL core at the measured plan timings.
-- Claims batch 20 runs, so claim transactions are ~3/s. Measured batch claim
-  throughput is orders of magnitude above that.
-- Liveness work is O(Worker owners), not O(runs).
-- Cron work is bounded by `SCHED_CRON_CATCHUP_LIMIT` (default 100) per due job
-  per tick; one 100-run catch-up inserted in ~3 ms.
+- 完成操作约 58 事务/s。每次完成测得的数据库工作量远低于 1 ms，再加上其依赖探测，按测得的计划耗时，这仍只占单个 PostgreSQL 核的一小部分。
+- 领取按每批 20 次运行进行，因此领取事务约 3/s。测得的批量领取吞吐比这高数个数量级。
+- 存活检查工作量是 O(Worker 属主数)，而不是 O(运行数)。
+- Cron 工作量受 `SCHED_CRON_CATCHUP_LIMIT`（默认 100）限制，即每个到期任务每个 tick 最多 100 次；一次 100 次运行的追补在约 3 ms 内插入完成。
 
-## Limits / next evidence
+## 限制 / 后续证据
 
-- Results are from a warm cache and a local single node; they do not measure
-  production network, storage latency, or 500k/day table growth.
-- The synthetic schema has 200k runs; long-run table growth and partitioning are
-  P2 work, and `run`/`run_attempt`/`log_manifest` are deliberately not
-  partitioned yet.
-- Dependency fan-out at the 500-downstream cap and advisory-lock contention at
-  very high fan-out were not separately stress-tested. The measured 10-edge case
-  is representative of ordinary fan-in, not the worst cap.
-- The per-job log archive sweep is not in this benchmark. It runs hourly behind
-  a transaction-scoped advisory lock and selects only terminal runs past both
-  retention limits using `run_archive_candidate_idx`; its bounded rank
-  subquery examines at most the job's retention-count rows per candidate. At
-  500k runs/day the long-run cost still needs a dedicated aged-table test.
+- 结果来自热缓存和本地单节点；未测量生产网络、存储延迟，也未测量每天 50 万次的表增长。
+- 合成 schema 有 200k 次运行；长期表增长与分区属于 P2 工作，`run`/`run_attempt`/`log_manifest` 目前刻意尚未分区。
+- 500 个下游上限下的依赖扇出、以及极高扇出下的咨询锁争用，未单独做压力测试。实测的 10 条边场景代表普通扇入，而非最坏上限。
+- 本基准不包含每任务日志归档清扫。它每小时运行一次，位于事务级咨询锁之后，使用 `run_archive_candidate_idx` 只选取同时超过两项保留限制的终态运行；其有界 rank 子查询对每个候选最多检查该任务保留条数行。在每天 50 万次运行下，长期成本仍需要专门的存量表测试。
